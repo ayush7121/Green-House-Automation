@@ -1,0 +1,94 @@
+#include <ArduinoWiFiServer.h>
+#include <BearSSLHelpers.h>
+#include <CertStoreBearSSL.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiAP.h>
+#include <ESP8266WiFiGeneric.h>
+#include <ESP8266WiFiGratuitous.h>
+#include <ESP8266WiFiMulti.h>
+#include <ESP8266WiFiScan.h>
+#include <ESP8266WiFiSTA.h>
+#include <ESP8266WiFiType.h>
+#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
+#include <WiFiClientSecureBearSSL.h>
+#include <WiFiServer.h>
+#include <WiFiServerSecure.h>
+#include <WiFiServerSecureBearSSL.h>
+#include <WiFiUdp.h>
+
+#include <ThingSpeak.h>
+
+ #include "DHT.h"  
+ DHT dht2(2,DHT11); 
+  WiFiClient client;
+  long myChannelNumber=1734512;
+  const char myWriteAPIKey[]="COBRY3MNTN1UN3KS";
+ const int relay = 5;
+ const int relay1 = D0;
+ const int sensor_pin = A0;
+ const int ledpin = 15;
+const int ldrpin = 4;
+ void setup()  
+ {  
+  Serial.begin(9600);  
+  WiFi.begin("ajay","asdfghjkl");
+  while(WiFi.status()!=WL_CONNECTED)
+  {
+    delay(200);
+    Serial.print("..");
+  }
+  Serial.println("NodeMCU is connected");
+  Serial.println(WiFi.localIP());
+  ThingSpeak.begin(client);
+  pinMode(relay, OUTPUT);
+  pinMode(relay1,OUTPUT);
+  pinMode(ledpin, OUTPUT);
+pinMode(ldrpin, INPUT);
+ }  
+ void loop()  
+ {    
+   float t=dht2.readTemperature( );    
+   float h=dht2.readHumidity();   
+   if((dht2.readTemperature( ))>=30){
+    digitalWrite(relay, HIGH);
+  Serial.println("Current Flowing");
+   }
+   else
+   {
+   digitalWrite(relay, LOW);
+  Serial.println("Current not Flowing");
+   }
+    float moisture_percentage;
+
+  moisture_percentage = ( 100.00 - ( (analogRead(sensor_pin)/1023.00) * 100.00 ) );
+
+  Serial.print("Soil Moisture(in Percentage) = ");
+  Serial.print(moisture_percentage);
+  Serial.println("%");
+  if(moisture_percentage<=35)
+  {
+    digitalWrite(relay1, HIGH);
+  }
+  else
+  {
+    digitalWrite(relay1, LOW);
+  }
+  int ldrStatus = digitalRead(ldrpin);
+if (ldrStatus == 1) 
+{
+digitalWrite(ledpin, HIGH);
+Serial.print("Its DARK, Turn on the LED : ");
+Serial.println(ldrStatus);
+} else {
+digitalWrite(ledpin,LOW);
+Serial.print("Its BRIGHT, Turn off the LED : ");
+Serial.println(ldrStatus);
+}
+  ThingSpeak.writeField(myChannelNumber,1,t,myWriteAPIKey);
+  ThingSpeak.writeField(myChannelNumber,2,h,myWriteAPIKey);
+  ThingSpeak.writeField(myChannelNumber,3,moisture_percentage,myWriteAPIKey);
+  ThingSpeak.writeField(myChannelNumber,4,ldrStatus,myWriteAPIKey);
+  delay(300); 
+  
+ }
